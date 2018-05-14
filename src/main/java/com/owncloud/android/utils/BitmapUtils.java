@@ -34,9 +34,7 @@ import com.owncloud.android.lib.common.utils.Log_OC;
 
 import org.apache.commons.codec.binary.Hex;
 
-import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 
 /**
@@ -272,7 +270,7 @@ public class BitmapUtils {
      * @throws UnsupportedEncodingException if the charset is not supported
      * @throws NoSuchAlgorithmException     if the specified algorithm is not available
      */
-    public static int[] calculateHSL(String name) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    public static int[] calculateHSL(String name) {
         // using adapted algorithm from https://github.com/nextcloud/server/blob/master/core/js/placeholder.js#L126
 
         String[] result = new String[]{"0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"};

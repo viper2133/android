@@ -132,8 +132,7 @@ public class TextDrawable extends Drawable {
      * @throws NoSuchAlgorithmException     if the specified algorithm is not available when calculating the color values
      */
     @NonNull
-    public static TextDrawable createNamedAvatar(String name, float radiusInDp) throws
-            UnsupportedEncodingException, NoSuchAlgorithmException {
+    public static TextDrawable createNamedAvatar(String name, float radiusInDp) {
         int[] hsl = BitmapUtils.calculateHSL(name);
         int[] rgb = BitmapUtils.HSLtoRGB(hsl[0], hsl[1], hsl[2], 1);
 

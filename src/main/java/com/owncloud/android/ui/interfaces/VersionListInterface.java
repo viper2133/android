@@ -26,14 +26,22 @@ import com.owncloud.android.lib.resources.files.FileVersion;
 public interface VersionListInterface {
 
     interface View {
-        void onRestoreClicked(FileVersion fileVersion, Callback callback);
+        void onRestoreClicked(FileVersion fileVersion, RestoreFileVersionCallback callback);
 
         void onSuccess(String message);
+
+        void onSuccess();
     }
-    
-    interface Callback {
+
+    interface RestoreFileVersionCallback {
         void onSuccess(FileVersion fileVersion);
 
         void onError(String error);
+    }
+
+    interface CommentCallback {
+        void onSuccess();
+
+        void onError(int error);
     }
 }

@@ -49,7 +49,6 @@ import com.owncloud.android.ui.dialog.ExpirationDatePickerDialogFragment;
 import com.owncloud.android.ui.fragment.util.FileDetailSharingFragmentHelper;
 import com.owncloud.android.utils.DisplayUtils;
 import com.owncloud.android.utils.ThemeUtils;
-import com.owncloud.android.utils.DisplayUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
@@ -337,23 +336,6 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.UserVi
             super(itemView);
             ButterKnife.bind(this, itemView);
         }
-    }
-
-    @Override
-    public void avatarGenerated(Drawable avatarDrawable, Object callContext) {
-        if (callContext instanceof ImageView) {
-            ImageView iv = (ImageView) callContext;
-            iv.setImageDrawable(avatarDrawable);
-        }
-    }
-
-    @Override
-    public boolean shouldCallGeneratedCallback(String tag, Object callContext) {
-        if (callContext instanceof ImageView) {
-            ImageView iv = (ImageView) callContext;
-            return String.valueOf(iv.getTag()).equals(tag);
-        }
-        return false;
     }
 
     public interface ShareeListAdapterListener {

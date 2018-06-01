@@ -114,7 +114,7 @@ public class ActivityAndVersionListAdapter extends ActivityListAdapter {
                     .getTime()));
 
             versionViewHolder.restore.setOnClickListener(v -> versionListInterface.onRestoreClicked(fileVersion,
-                    new VersionListInterface.Callback() {
+                    new VersionListInterface.RestoreFileVersionCallback() {
                         @Override
                         public void onSuccess(FileVersion fileVersion) {
                             versionListInterface.onSuccess(context.getString(

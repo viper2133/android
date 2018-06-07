@@ -379,6 +379,15 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putParcelable(FileActivity.EXTRA_FILE, file);
+        outState.putParcelable(FileActivity.EXTRA_ACCOUNT, account);
+    }
+
+
+    @Override
     public void onSuccess(String message) {
         Snackbar.make(recyclerView, message, Snackbar.LENGTH_LONG).show();
         fetchAndSetData(null);

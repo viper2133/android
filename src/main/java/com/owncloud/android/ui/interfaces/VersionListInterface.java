@@ -31,6 +31,8 @@ public interface VersionListInterface {
         void onSuccess(String message);
 
         void onSuccess();
+
+        void onError(String message);
     }
 
     interface RestoreFileVersionCallback {

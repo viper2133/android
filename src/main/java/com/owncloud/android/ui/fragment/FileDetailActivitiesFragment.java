@@ -62,14 +62,17 @@ import com.owncloud.android.lib.resources.status.OCCapability;
 import com.owncloud.android.lib.resources.status.OwnCloudVersion;
 import com.owncloud.android.operations.CommentFileOperation;
 import com.owncloud.android.operations.RestoreFileVersionOperation;
+import com.owncloud.android.ui.activity.ComponentsGetter;
 import com.owncloud.android.ui.activity.FileActivity;
 import com.owncloud.android.ui.adapter.ActivityAndVersionListAdapter;
+import com.owncloud.android.ui.helpers.FileOperationsHelper;
 import com.owncloud.android.ui.interfaces.ActivityListInterface;
 import com.owncloud.android.ui.interfaces.VersionListInterface;
 import com.owncloud.android.utils.ThemeUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindString;
 import butterknife.BindView;
@@ -128,6 +131,8 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
 
     private boolean restoreFileVersionSupported;
     private String userId;
+    private FileOperationsHelper operationsHelper;
+    private FileDataStorageManager storageManager;
     private VersionListInterface.CommentCallback callback;
 
     public static FileDetailActivitiesFragment newInstance(OCFile file, Account account) {
@@ -194,7 +199,7 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
     @OnClick(R.id.submitComment)
     public void submitComment() {
         if (commentInput.getText().toString().trim().length() > 0) {
-            new RestoreFileVersionTask.SubmitCommentTask(commentInput.getText().toString(), userId, file.getLocalId(),
+            new SubmitCommentTask(commentInput.getText().toString(), userId, file.getLocalId(),
                     callback, ownCloudClient).execute();
         }
     }
@@ -221,7 +226,8 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
     }
 
     private void setupView() {
-        FileDataStorageManager storageManager = new FileDataStorageManager(account, getActivity().getContentResolver());
+        storageManager = new FileDataStorageManager(account, getActivity().getContentResolver());
+        operationsHelper = ((ComponentsGetter) getActivity()).getFileOperationsHelper();
 
         OCCapability capability = storageManager.getCapability(account.name);
         OwnCloudVersion serverVersion = AccountUtils.getServerVersion(account);
@@ -405,9 +411,29 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putParcelable(FileActivity.EXTRA_FILE, file);
+        outState.putParcelable(FileActivity.EXTRA_ACCOUNT, account);
+    }
+
+
+    @Override
     public void onSuccess(String message) {
         Snackbar.make(recyclerView, message, Snackbar.LENGTH_LONG).show();
         fetchAndSetData(null);
+    }
+
+    @Override
+    public void onError(String message) {
+        Snackbar.make(recyclerView, message, Snackbar.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onRestoreClicked(FileVersion fileVersion, VersionListInterface.RestoreFileVersionCallback callback) {
+        new RestoreFileVersionTask(fileVersion, userId, ownCloudClient, storageManager, operationsHelper, file,
+                callback).execute();
     }
 
     @Override
@@ -415,24 +441,27 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
         fetchAndSetData(null);
     }
 
-    @Override
-    public void onRestoreClicked(FileVersion fileVersion, VersionListInterface.RestoreFileVersionCallback callback) {
-        new RestoreFileVersionTask(fileVersion, userId, ownCloudClient, callback).execute();
-    }
-
     // TODO extract according to MVP, will be in following PR
     private static class RestoreFileVersionTask extends AsyncTask<Void, Void, Boolean> {
 
-        private FileVersion file;
+        private FileVersion fileVersion;
         private String userId;
         private OwnCloudClient client;
+        private FileOperationsHelper operationsHelper;
+        private FileDataStorageManager storageManager;
+        private OCFile ocFile;
         private VersionListInterface.RestoreFileVersionCallback callback;
 
-        private RestoreFileVersionTask(FileVersion file, String userId, OwnCloudClient client,
+        private RestoreFileVersionTask(FileVersion fileVersion, String userId, OwnCloudClient client,
+                                       FileDataStorageManager storageManager, FileOperationsHelper operationsHelper,
+                                       OCFile ocFile,
                                        VersionListInterface.RestoreFileVersionCallback callback) {
-            this.file = file;
+            this.fileVersion = fileVersion;
             this.userId = userId;
             this.client = client;
+            this.storageManager = storageManager;
+            this.operationsHelper = operationsHelper;
+            this.ocFile = ocFile;
             this.callback = callback;
         }
 
@@ -440,9 +469,15 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
         protected Boolean doInBackground(Void... voids) {
 
             RestoreFileVersionOperation restoreFileVersionOperation = new RestoreFileVersionOperation(
-                    file.getRemoteId(), file.getFileName(), userId);
+                    fileVersion.getRemoteId(), fileVersion.getFileName(), userId);
 
             RemoteOperationResult result = restoreFileVersionOperation.execute(client);
+
+            if (result.isSuccess() && ocFile.isDown()) {
+                List<OCFile> list = new ArrayList<>();
+                list.add(ocFile);
+                operationsHelper.removeFiles(list, true, true);
+            }
 
             return result.isSuccess();
         }
@@ -452,49 +487,49 @@ public class FileDetailActivitiesFragment extends Fragment implements ActivityLi
             super.onPostExecute(success);
 
             if (success) {
-                callback.onSuccess(file);
+                callback.onSuccess(fileVersion);
             } else {
                 callback.onError("error");
 
             }
         }
+    }
 
-        private static class SubmitCommentTask extends AsyncTask<Void, Void, Boolean> {
+    private static class SubmitCommentTask extends AsyncTask<Void, Void, Boolean> {
 
-            private String message;
-            private String userId;
-            private String fileId;
-            private VersionListInterface.CommentCallback callback;
-            private OwnCloudClient client;
+        private String message;
+        private String userId;
+        private String fileId;
+        private VersionListInterface.CommentCallback callback;
+        private OwnCloudClient client;
 
-            private SubmitCommentTask(String message, String userId, String fileId,
-                                      VersionListInterface.CommentCallback callback, OwnCloudClient client) {
-                this.message = message;
-                this.userId = userId;
-                this.fileId = fileId;
-                this.callback = callback;
-                this.client = client;
-            }
+        private SubmitCommentTask(String message, String userId, String fileId,
+                                  VersionListInterface.CommentCallback callback, OwnCloudClient client) {
+            this.message = message;
+            this.userId = userId;
+            this.fileId = fileId;
+            this.callback = callback;
+            this.client = client;
+        }
 
-            @Override
-            protected Boolean doInBackground(Void... voids) {
-                CommentFileOperation commentFileOperation = new CommentFileOperation(message, fileId, userId);
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+            CommentFileOperation commentFileOperation = new CommentFileOperation(message, fileId, userId);
 
-                RemoteOperationResult result = commentFileOperation.execute(client);
+            RemoteOperationResult result = commentFileOperation.execute(client);
 
-                return result.isSuccess();
-            }
+            return result.isSuccess();
+        }
 
-            @Override
-            protected void onPostExecute(Boolean success) {
-                super.onPostExecute(success);
+        @Override
+        protected void onPostExecute(Boolean success) {
+            super.onPostExecute(success);
 
-                if (success) {
-                    callback.onSuccess();
-                } else {
-                    callback.onError(R.string.error_comment_file);
+            if (success) {
+                callback.onSuccess();
+            } else {
+                callback.onError(R.string.error_comment_file);
 
-                }
             }
         }
     }
